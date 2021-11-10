@@ -33,16 +33,25 @@
                 <span><%= provider.name %></span>
             </div>
             <div class="col-3">
-                <span><%= provider.active ? "active" : "inactive" %></span>
+                <span id=<%="provider-#{provider.id}-state"%>><%= provider.active ? "active" : "inactive" %></span>
             </div>
             <div class="col-3">
                 <span><%= provider.links_shortened_amount %></span>
             </div>
             <div class="col-2 text-left">
                 <label class="switch">
-                    <input type="checkbox" id="provider-<%= provider.id %>-switch" 
-                        <%= "checked" if provider.active %>
-                    >
+                    <%= check_box_tag "provider-#{provider.id}-switch", provider.active, provider.active, {
+                        onchange: "(() => { 
+                            let text = document.getElementById(`provider-#{provider.id}-state`).innerHTML
+                            if (text == 'active') {
+                                document.getElementById(`provider-#{provider.id}-state`).innerHTML = 'inactive'
+                            } else {
+                                document.getElementById(`provider-#{provider.id}-state`).innerHTML = 'active'
+                            }
+                        })()",
+                        data: { url: url_for(action: 'toggle_state', id: provider.id,), remote: true, method: :patch },
+                    } 
+                    %>
                     <span class="slider round"></span>
                 </label>
             </div>

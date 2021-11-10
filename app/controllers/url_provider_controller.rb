@@ -7,14 +7,9 @@ class UrlProviderController < ApplicationController
         @url_providers = UrlProvider.all
     end
 
-    def update
-        # UNDER CONSTRUCTION
+    def toggle_state
         @url_provider = UrlProvider.find(params[:id])
-        if @url_provider.update(params)
-            puts @url_provider
-        else
-            puts "DID NOT SAVED"
-        end
+        @url_provider.update("active": !@url_provider.active)
     end
 
     def shorten
@@ -37,16 +32,6 @@ class UrlProviderController < ApplicationController
             }
             
             response = request_sender('https://api-ssl.bitly.com/v4/shorten', headers, body)
-            
-            if response.kind_of? Net::HTTPSuccess
-                provider = UrlProvider.where(name: 'bit.ly')[0]
-                provider.update(links_shortened_amount: provider.links_shortened_amount+1 )
-
-                shortened_url = JSON.parse(response.body)["link"]
-                return render json: { shortened_url: shortened_url }, status: 200
-            else
-                return render json: { error: "Problem with external service" }, status: 503
-            end
         elsif provider == 'tinyurl.com'
             headers = {
                 'Content-Type' => 'application/json',
@@ -59,16 +44,21 @@ class UrlProviderController < ApplicationController
             }
             
             response = request_sender('https://api.tinyurl.com/create', headers, body)
-            
-            if response.kind_of? Net::HTTPSuccess
-                provider = UrlProvider.where(name: 'tinyurl.com')[0]
-                provider.update(links_shortened_amount: provider.links_shortened_amount+1 )
-                
+        end
+
+        if response.kind_of? Net::HTTPSuccess            
+            url_provider = UrlProvider.where(name: provider)[0]
+            url_provider.update(links_shortened_amount: url_provider.links_shortened_amount+1 )
+
+            if provider == 'bit.ly'
+                shortened_url = JSON.parse(response.body)["link"]
+            elsif provider == 'tinyurl.com'
                 shortened_url = JSON.parse(response.body)["data"]["tiny_url"]
-                return render json: { shortened_url: shortened_url }, status: 200
-            else
-                return render json: { error: "Problem with external service" }, status: 503
             end
+
+            return render json: { shortened_url: shortened_url }, status: 200
+        else
+            return render json: { error: "Problem with external service" }, status: 503
         end
     end
 
